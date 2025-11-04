@@ -1,0 +1,474 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PES Projects Timeline</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f3f4f6;
+        }
+        /* Custom Orange Accent Color */
+        :root {
+            --color-pes-orange: #ff6100;
+            --color-pes-orange-dark: #cc4d00;
+        }
+        .bg-pes-orange { background-color: var(--color-pes-orange); }
+        .hover\:bg-pes-orange-dark:hover { background-color: var(--color-pes-orange-dark); }
+        .text-pes-orange { color: var(--color-pes-orange); }
+        .focus\:ring-pes-orange:focus { --tw-ring-color: var(--color-pes-orange); }
+        .border-pes-orange { border-color: var(--color-pes-orange); }
+
+        /* Custom scrollbar for modals */
+        .modal-body::-webkit-scrollbar {
+            width: 8px;
+        }
+        .modal-body::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 10px;
+        }
+        .modal-body::-webkit-scrollbar-thumb {
+            background: #888;
+            border-radius: 10px;
+        }
+        .modal-body::-webkit-scrollbar-thumb:hover {
+            background: #555;
+        }
+
+        /* Timeline styles */
+        .timeline {
+            position: relative;
+            padding-left: 30px; /* Space for the line and dots */
+            border-left: 2px solid #e5e7eb; /* The vertical line */
+        }
+        .timeline-item {
+            position: relative;
+            margin-bottom: 20px;
+            padding-left: 20px;
+        }
+        .timeline-item::before {
+            content: '';
+            position: absolute;
+            left: -0.5rem; /* Adjusted for better positioning */
+            top: 0.75rem; /* Adjusted to align with text */
+            width: 1.5rem; /* Increased size */
+            height: 1.5rem; /* Increased size */
+            border-radius: 50%;
+            border: 3px solid #e5e7eb; /* Default border color */
+            background-color: #fff; /* Default background for dot */
+            transform: translateX(-50%);
+        }
+        .timeline-item.green::before {
+            background-color: #10B981; /* Green color */
+            border-color: #10B981;
+        }
+        .timeline-item.orange::before {
+            background-color: #F59E0B; /* Orange color */
+            border-color: #F59E0B;
+        }
+        .timeline-item.red::before {
+            background-color: #EF4444; /* Red color */
+            border-color: #EF4444;
+        }
+        .timeline-title-hover {
+            position: relative;
+            display: inline-block;
+            cursor: pointer;
+            overflow: hidden; /* Hide the sliding effect initially */
+            padding-bottom: 2px; /* Space for the underline */
+        }
+
+        .timeline-title-hover::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: -100%; /* Start off-screen to the left */
+            width: 100%;
+            height: 2px;
+            background-color: var(--color-pes-orange); /* Orange color */
+            transition: left 0.3s ease-out; /* Smooth slide effect */
+        }
+
+        .timeline-title-hover:hover::after {
+            left: 0; /* Slide in from the left */
+        }
+
+        /* Undo banner styles */
+        #undoBanner {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background-color: #333;
+            color: white;
+            padding: 15px 25px;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            z-index: 100;
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.3s ease, visibility 0.3s ease;
+        }
+        #undoBanner.show {
+            opacity: 1;
+            visibility: visible;
+        }
+        #undoButton {
+            background-color: var(--color-pes-orange);
+            color: white;
+            padding: 8px 15px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: background-color 0.2s;
+        }
+        #undoButton:hover {
+            background-color: var(--color-pes-orange-dark);
+        }
+    </style>
+</head>
+<body class="bg-gray-100 min-h-screen flex flex-col">
+    <!-- Header -->
+    <header class="bg-white shadow-md p-4 flex justify-between items-center sticky top-0 z-10">
+        <h1 id="homepageTitle" class="text-3xl font-bold text-gray-800 timeline-title-hover">PES Projects Timeline</h1>
+        <div class="flex items-center space-x-4">
+            <span id="adminStatus" class="text-sm font-medium text-gray-600">Admin Mode: Off</span>
+            <button id="adminAccessBtn" class="px-4 py-2 bg-pes-orange text-white rounded-lg shadow hover:bg-pes-orange-dark transition duration-300">Admin Access</button>
+            <button id="addProjectBtn" class="px-4 py-2 bg-pes-orange text-white rounded-lg shadow hover:bg-pes-orange-dark transition duration-300 hidden">Add New Project</button>
+        </div>
+    </header>
+
+    <main class="container mx-auto p-6 flex-grow">
+        <!-- Message Box -->
+        <div id="messageBox" class="fixed top-20 right-6 bg-green-500 text-white px-6 py-3 rounded-lg shadow-lg hidden z-20"></div>
+
+        <div id="projectList" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <!-- Projects will be loaded here -->
+        </div>
+
+        <div id="projectDetail" class="hidden bg-white p-8 rounded-lg shadow-lg">
+            <button onclick="app.showProjectList()" class="mb-4 px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition duration-300">Back to Projects</button>
+            <h2 id="projectDetailName" class="text-4xl font-bold text-gray-800 mb-4"></h2>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-6 text-gray-700">
+                <p><strong class="font-semibold">Team Leader:</strong> <span id="projectDetailLead"></span></p>
+                <p><strong class="font-semibold">Client Name:</strong> <span id="projectDetailClient"></span></p>
+                <p><strong class="font-semibold">Project Stage:</strong> <span id="projectDetailStage"></span></p>
+                <p><strong class="font-semibold">Project Scope:</strong> <span id="projectDetailScope"></span></p>
+                <p><strong class="font-semibold">Start Date:</strong> <span id="projectDetailStartDate"></span></p>
+                <p><strong class="font-semibold">Expected End Date:</strong> <span id="projectDetailEndDate"></span></p>
+
+                <!-- New Survey and GI Statuses -->
+                <p><strong class="font-semibold">Survey:</strong> <span id="projectDetailSurveyStatus"></span></p>
+                <p><strong class="font-semibold">GI:</strong> <span id="projectDetailGIStatus"></span></p>
+                <div class="col-span-full">
+                    <p><strong class="font-semibold">Additional Description:</strong> <span id="projectDetailAdditionalDescription"></span></p>
+                </div>
+                
+                <p><strong class="font-semibold">Last Updated:</strong> <span id="projectDetailLastUpdate"></span> by <span id="projectDetailLastUpdater"></span></p>
+            </div>
+
+            <details class="mb-6">
+                <summary class="text-2xl font-semibold text-gray-800 cursor-pointer py-2">Project Specs</summary>
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-6 text-gray-700 pl-4">
+                    <p><strong class="font-semibold">Location/District:</strong> <span id="projectDetailLocation"></span></p>
+                    <p><strong class="font-semibold">Dam Type:</strong> <span id="projectDetailDamType"></span></p>
+                    <p><strong class="font-semibold">Avg. Annual Inflow (MCM):</strong> <span id="projectDetailInflow"></span></p>
+                    <p><strong class="font-semibold">Gross Storage (MCM):</strong> <span id="projectDetailGrossStorage"></span></p>
+                    <p><strong class="font-semibold">Live Storage (MCM):</strong> <span id="projectDetailLiveStorage"></span></p>
+                    <p><strong class="font-semibold">NCL (m):</strong> <span id="projectDetailNCL"></span></p>
+                    <p><strong class="font-semibold">Dam / Weir Height(m):</strong> <span id="projectDetailDamHeight"></span></p>
+                    <p><strong class="font-semibold">Crest Elevation:</strong> <span id="projectDetailCrestElevation"></span></p>
+                    <p><strong class="font-semibold">Flood "Q" (Cms):</strong> <span id="projectDetailFloodQ"></span></p>
+                    <p><strong class="font-semibold">Power (MW):</strong> <span id="projectDetailPower"></span></p>
+                    <p><strong class="font-semibold">CCA (Hectare):</strong> <span id="projectDetailCCA"></span></p>
+                    <p><strong class="font-semibold">Canal "Q" (Cms), Drinking Water Supply:</label> <span id="projectDetailCanalQ"></span></p>
+                    <p><strong class="font-semibold">Catchment Area (Sq.km):</strong> <span id="projectDetailCatchmentArea"></span></p>
+                    <p><strong class="font-semibold">Sediment Load (M3/SQ.Km/Yr):</strong> <span id="projectDetailSedimentLoad"></span></p>
+                    <p><strong class="font-semibold">Project Cost (M. Rs):</strong> <span id="projectDetailCost"></span></p>
+                </div>
+            </details>
+            
+            <button id="addStatusUpdateBtn" class="px-6 py-3 bg-pes-orange text-white rounded-lg shadow hover:bg-pes-orange-dark transition duration-300 mb-6">Add Status Update</button>
+            <button id="markProjectCompletedBtn" class="px-6 py-3 bg-gray-500 text-white rounded-lg shadow hover:bg-gray-600 transition duration-300 mb-6 ml-4 hidden">Mark Project Completed</button>
+
+
+            <h3 class="text-2xl font-semibold text-gray-800 mb-4">Project Timeline</h3>
+            <div id="timelineContainer" class="timeline">
+                <!-- Timeline updates will be loaded here, grouped by month/year -->
+            </div>
+        </div>
+    </main>
+
+    <!-- Undo Banner -->
+    <div id="undoBanner" class="fixed bottom-20 left-1/2 -translate-x-1/2 bg-gray-800 text-white p-4 rounded-lg shadow-lg flex items-center space-x-4 hidden z-50">
+        <span id="undoMessage"></span>
+        <button id="undoButton" class="bg-blue-500 hover:bg-blue-600 text-white px-3 py-1 rounded-md">Undo</button>
+    </div>
+
+
+    <!-- Admin Access Modal -->
+    <div id="adminAccessModal" class="fixed inset-0 bg-gray-900 bg-opacity-50 flex items-center justify-center hidden z-30">
+        <div class="bg-white p-8 rounded-lg shadow-xl w-96">
+            <h3 class="text-xl font-semibold mb-4 text-gray-800">Admin Access Required</h3>
+            <input type="password" id="adminPasswordInput" placeholder="Enter admin password"
+                   class="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-pes-orange" autofocus>
+            <div class="flex justify-end space-x-3">
+                <button onclick="app.closeAdminAccessModal()" class="px-5 py-2 bg-gray-300 text-gray-800 rounded-lg hover:bg-gray-400 transition duration-300">Cancel</button>
+                <button id="confirmAdminAccessBtn" class="px-5 py-2 bg-pes-orange text-white rounded-lg hover:bg-pes-orange-dark transition duration-300">Confirm</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add/Edit Project Modal -->
+    <div id="projectFormModal" class="fixed inset-0 bg-gray-900 bg-opacity-50 flex items-center justify-center hidden z-30">
+        <div class="bg-white p-8 rounded-lg shadow-xl w-full max-w-3xl modal-body max-h-screen overflow-y-auto">
+            <h3 id="projectFormTitle" class="text-xl font-semibold mb-6 text-gray-800">Add New Project</h3>
+            <form id="projectForm" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <div>
+                    <label for="projectName" class="block text-sm font-medium text-gray-700 mb-1">Project Name <span class="text-red-500">*</span></label>
+                    <input type="text" id="projectName" class="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-pes-orange" required>
+                </div>
+                <div>
+                    <label for="pesLead" class="block text-sm font-medium text-gray-700 mb-1">Team Leader <span class="text-red-500">*</span></label>
+                    <input type="text" id="pesLead" class="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-pes-orange" required>
+                </div>
+                <div>
+                    <label for="clientName" class="block text-sm font-medium text-gray-700 mb-1">Client Name <span class="text-red-500">*</span></label>
+                    <input type="text" id="clientName" class="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-pes-orange" required>
+                </div>
+
+                <!-- Project Stage Checkboxes -->
+                <div class="col-span-1 md:col-span-2 lg:col-span-3">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Project Stage <span class="text-red-500">*</span></label>
+                    <div id="projectStageCheckboxes" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2">
+                        <label class="inline-flex items-center">
+                            <input type="checkbox" name="projectStage" value="Prefeasibility" class="form-checkbox h-5 w-5 text-pes-orange rounded focus:ring-pes-orange">
+                            <span class="ml-2 text-gray-700">Prefeasibility</span>
+                        </label>
+                        <label class="inline-flex items-center">
+                            <input type="checkbox" name="projectStage" value="Feasibility Study" class="form-checkbox h-5 w-5 text-pes-orange rounded focus:ring-pes-orange">
+                            <span class="ml-2 text-gray-700">Feasibility Study</span>
+                        </label>
+                        <label class="inline-flex items-center">
+                            <input type="checkbox" name="projectStage" value="Feasibility Review" class="form-checkbox h-5 w-5 text-pes-orange rounded focus:ring-pes-orange">
+                            <span class="ml-2 text-gray-700">Feasibility Review</span>
+                        </label>
+                        <label class="inline-flex items-center">
+                            <input type="checkbox" name="projectStage" value="Detail Design" class="form-checkbox h-5 w-5 text-pes-orange rounded focus:ring-pes-orange">
+                            <span class="ml-2 text-gray-700">Detail Design</span>
+                        </label>
+                        <label class="inline-flex items-center">
+                            <input type="checkbox" name="projectStage" value="Detail Design & Construction Supervision" class="form-checkbox h-5 w-5 text-pes-orange rounded focus:ring-pes-orange">
+                            <span class="ml-2 text-gray-700">Detail Design & Construction Supervision</span>
+                        </label>
+                    </div>
+                </div>
+
+                <!-- Project Scope Checkboxes -->
+                <div class="col-span-1 md:col-span-2 lg:col-span-3">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Project Scope <span class="text-red-500">*</span></label>
+                    <div id="projectScopeCheckboxes" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2">
+                        <label class="inline-flex items-center">
+                            <input type="checkbox" name="projectScope" value="Irrigation Only" class="form-checkbox h-5 w-5 text-pes-orange rounded focus:ring-pes-orange">
+                            <span class="ml-2 text-gray-700">Irrigation Only</span>
+                        </label>
+                        <label class="inline-flex items-center">
+                            <input type="checkbox" name="projectScope" value="Drinking Water Supply Only" class="form-checkbox h-5 w-5 text-pes-orange rounded focus:ring-pes-orange">
+                            <span class="ml-2 text-gray-700">Drinking Water Supply Only</span>
+                        </label>
+                        <label class="inline-flex items-center">
+                            <input type="checkbox" name="projectScope" value="Both Irrigation & Water Supply" class="form-checkbox h-5 w-5 text-pes-orange rounded focus:ring-pes-orange">
+                            <span class="ml-2 text-gray-700">Both Irrigation & Water Supply</span>
+                        </label>
+                        <label class="inline-flex items-center">
+                            <input type="checkbox" name="projectScope" value="Hydropower" class="form-checkbox h-5 w-5 text-pes-orange rounded focus:ring-pes-orange">
+                            <span class="ml-2 text-gray-700">Hydropower</span>
+                        </label>
+                        <label class="inline-flex items-center">
+                            <input type="checkbox" name="projectScope" value="Water Supply + Irrigation + Hydropower" class="form-checkbox h-5 w-5 text-pes-orange rounded focus:ring-pes-orange">
+                            <span class="ml-2 text-gray-700">Water Supply + Irrigation + Hydropower</span>
+                        </label>
+                    </div>
+                </div>
+
+                <!-- New Survey and GI Status Checkboxes -->
+                <div class="col-span-1 md:col-span-2 lg:col-span-3">
+                    <div class="mb-4">
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Survey</label>
+                        <div class="flex items-center space-x-4">
+                            <label class="inline-flex items-center">
+                                <input type="radio" name="surveyStatus" value="Completed" class="form-radio h-5 w-5 text-green-600 focus:ring-green-500">
+                                <span class="ml-2 text-gray-700">Completed</span>
+                            </label>
+                            <label class="inline-flex items-center">
+                                <input type="radio" name="surveyStatus" value="InProgress" class="form-radio h-5 w-5 text-orange-600 focus:ring-orange-500">
+                                <span class="ml-2 text-gray-700">InProgress</span>
+                            </label>
+                        </div>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">GI</label>
+                        <div class="flex items-center space-x-4">
+                            <label class="inline-flex items-center">
+                                <input type="radio" name="giStatus" value="Completed" class="form-radio h-5 w-5 text-green-600 focus:ring-green-500">
+                                <span class="ml-2 text-gray-700">Completed</span>
+                            </label>
+                            <label class="inline-flex items-center">
+                                <input type="radio" name="giStatus" value="InProgress" class="form-radio h-5 w-5 text-orange-600 focus:ring-orange-500">
+                                <span class="ml-2 text-gray-700">InProgress</span>
+                            </label>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- New Additional Description -->
+                <div class="col-span-1 md:col-span-2 lg:col-span-3">
+                    <label for="additionalDescription" class="block text-sm font-medium text-gray-700 mb-1">Additional Description</label>
+                    <textarea id="additionalDescription" rows="3" placeholder="Survey / GI / others" class="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-pes-orange"></textarea>
+                </div>
+
+
+                <!-- Detailed Project Features -->
+                <div>
+                    <label for="locationDistrict" class="block text-sm font-medium text-gray-700 mb-1">Location/District:</label>
+                    <input type="text" id="locationDistrict" class="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-pes-orange">
+                </div>
+                <div>
+                    <label for="damType" class="block text-sm font-medium text-gray-700 mb-1">Dam Type:</label>
+                    <input type="text" id="damType" class="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-pes-orange">
+                </div>
+                <div>
+                    <label for="avgAnnualInflow" class="block text-sm font-medium text-gray-700 mb-1">Avg. Annual Inflow (MCM):</label>
+                    <input type="text" id="avgAnnualInflow" class="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-pes-orange">
+                </div>
+                <div>
+                    <label for="grossStorage" class="block text-sm font-medium text-gray-700 mb-1">Gross Storage (MCM):</label>
+                    <input type="text" id="grossStorage" class="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-pes-orange">
+                </div>
+                <div>
+                    <label for="liveStorage" class="block text-sm font-medium text-gray-700 mb-1">Live Storage (MCM):</label>
+                    <input type="text" id="liveStorage" class="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-pes-orange">
+                </div>
+                <div>
+                    <label for="nclM" class="block text-sm font-medium text-gray-700 mb-1">NCL (m):</label>
+                    <input type="text" id="nclM" class="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-pes-orange">
+                </div>
+                <div>
+                    <label for="damWeirHeightM" class="block text-sm font-medium text-gray-700 mb-1">Dam / Weir Height(m):</label>
+                    <input type="text" id="damWeirHeightM" class="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-pes-orange">
+                </div>
+                <div>
+                    <label for="crestElevation" class="block text-sm font-medium text-gray-700 mb-1">Crest Elevation:</label>
+                    <input type="text" id="crestElevation" class="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-pes-orange">
+                </div>
+                <div>
+                    <label for="floodQCms" class="block text-sm font-medium text-gray-700 mb-1">Flood "Q" (Cms):</label>
+                    <input type="text" id="floodQCms" class="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-pes-orange">
+                </div>
+                <div>
+                    <label for="powerMW" class="block text-sm font-medium text-gray-700 mb-1">Power (MW):</label>
+                    <input type="text" id="powerMW" class="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-pes-orange">
+                </div>
+                <div>
+                    <label for="ccaHectare" class="block text-sm font-medium text-gray-700 mb-1">CCA (Hectare):</label>
+                    <input type="text" id="ccaHectare" class="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-pes-orange">
+                </div>
+                <div>
+                    <label for="canalQCmsDrinkingWaterSupply" class="block text-sm font-medium text-gray-700 mb-1">Canal "Q" (Cms), Drinking Water Supply:</label>
+                    <input type="text" id="canalQCmsDrinkingWaterSupply" class="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-pes-orange">
+                </div>
+                <div>
+                    <label for="catchmentAreaSqkm" class="block text-sm font-medium text-gray-700 mb-1">Catchment Area (Sq.km):</label>
+                    <input type="text" id="catchmentAreaSqkm" class="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-pes-orange">
+                </div>
+                <div>
+                    <label for="sedimentLoadM3SqkmYr" class="block text-sm font-medium text-gray-700 mb-1">Sediment Load (M3/SQ.Km/Yr):</label>
+                    <input type="text" id="sedimentLoadM3SqkmYr" class="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-pes-orange">
+                </div>
+                <div>
+                    <label for="projectCostMRs" class="block text-sm font-medium text-gray-700 mb-1">Project Cost (M. Rs):</label>
+                    <input type="text" id="projectCostMRs" class="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-pes-orange">
+                </div>
+
+                <!-- Date pickers should ideally be type="date" -->
+                <div>
+                    <label for="startDate" class="block text-sm font-medium text-gray-700 mb-1">Starting Date / Commencement Date <span class="text-red-500">*</span></label>
+                    <input type="date" id="startDate" class="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-pes-orange" required>
+                </div>
+                <div>
+                    <label for="expectedEndDate" class="block text-sm font-medium text-gray-700 mb-1">Expected Ending Date <span class="text-red-500">*</span></label>
+                    <input type="date" id="expectedEndDate" class="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-pes-orange" required>
+                </div>
+
+                <div class="col-span-full flex justify-end space-x-3 mt-6">
+                    <button type="button" onclick="app.closeProjectFormModal()" class="px-5 py-2 bg-gray-300 text-gray-800 rounded-lg hover:bg-gray-400 transition duration-300">Cancel</button>
+                    <button type="submit" class="px-5 py-2 bg-pes-orange text-white rounded-lg hover:bg-pes-orange-dark transition duration-300">Save Project</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Add/Edit Status Update Modal -->
+    <div id="statusUpdateModal" class="fixed inset-0 bg-gray-900 bg-opacity-50 flex items-center justify-center hidden z-30">
+        <div class="bg-white p-8 rounded-lg shadow-xl w-96">
+            <h3 id="statusUpdateFormTitle" class="text-xl font-semibold mb-4 text-gray-800">Add Status Update</h3>
+            <form id="statusUpdateForm">
+                <div class="mb-4">
+                    <label for="updateDisplayDate" class="block text-sm font-medium text-gray-700 mb-1">Date of Update</label>
+                    <input type="date" id="updateDisplayDate" class="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-pes-orange" required>
+                </div>
+                <div class="mb-4">
+                    <label for="activityTask" class="block text-sm font-medium text-gray-700 mb-1">Activity / Task <span class="text-red-500">*</span></label>
+                    <textarea id="activityTask" rows="3" class="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-pes-orange" required></textarea>
+                </div>
+                <div class="mb-4">
+                    <label for="statusProgressText" class="block text-sm font-medium text-gray-700 mb-1">Current Progress</label>
+                    <textarea id="statusProgressText" rows="2" class="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-pes-orange"></textarea>
+                </div>
+                <div class="mb-4">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Status Color <span class="text-red-500">*</span></label>
+                    <div class="flex items-center space-x-4">
+                        <label class="inline-flex items-center">
+                            <input type="radio" name="statusColor" value="Green" class="form-radio h-5 w-5 text-green-600 focus:ring-green-500" required>
+                            <span class="ml-2 text-gray-700">On Track</span>
+                        </label>
+                        <label class="inline-flex items-center">
+                            <input type="radio" name="statusColor" value="Orange" class="form-radio h-5 w-5 text-orange-600 focus:ring-orange-500">
+                            <span class="ml-2 text-gray-700">Minor Issues</span>
+                        </label>
+                        <label class="inline-flex items-center">
+                            <input type="radio" name="statusColor" value="Red" class="form-radio h-5 w-5 text-red-600 focus:ring-red-500">
+                            <span class="ml-2 text-gray-700">Significant Issues</span>
+                        </label>
+                    </div>
+                </div>
+                <div class="mb-4">
+                    <label for="updatedBy" class="block text-sm font-medium text-gray-700 mb-1">Updated By (Your Name) <span class="text-red-500">*</span></label>
+                    <input type="text" id="updatedBy" class="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-pes-orange" required>
+                </div>
+                <div class="flex justify-end space-x-3">
+                    <button type="button" onclick="app.closeStatusUpdateModal()" class="px-5 py-2 bg-gray-300 text-gray-800 rounded-lg hover:bg-gray-400 transition duration-300">Cancel</button>
+                    <button type="submit" id="submitStatusUpdateFormBtn" class="px-5 py-2 bg-pes-orange text-white rounded-lg hover:bg-pes-orange-dark transition duration-300">Submit Update</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Axios CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    <!-- jsPDF CDN -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <!-- html2canvas CDN -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+
+    <script src="app.js"></script>
+</body>
+</html>
