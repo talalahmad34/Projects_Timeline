@@ -36,10 +36,6 @@ License
 
 Overview
 
-Here is a look at the main project timeline interface.
-
-(To add your own screenshot: take a screenshot of your app, add it to your project folder, and change the URL above to its filename, e.g., app_screenshot.png)
-
 Key Features
 
 Real-time Status Timeline: A color-coded (Green/Orange/Red) visual timeline for quick, at-a-glance project status checks.
@@ -147,3 +143,4 @@ Talal Ahmad
 📄 License
 
 This project is licensed under the MIT License - see the LICENSE file for details.
+
